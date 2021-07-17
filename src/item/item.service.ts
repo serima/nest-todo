@@ -35,4 +35,20 @@ export class ItemService {
         return await this.itemRepository.delete(id);
     }
 
+    // パスワードを使用した削除
+    async deleteByPassword(
+        id: number,
+        deletePassword: string,
+    ): Promise<DeleteResult> {
+        const targetItem = await this.find(id);
+        if (!targetItem) {
+            return Promise.reject(new Error("missing item."));
+        }
+        if (targetItem.deletePassword !== deletePassword) {
+            return Promise.reject(new Error("incorrect password."));
+        }
+
+        return await this.itemRepository.delete(id);
+    }
+
 }

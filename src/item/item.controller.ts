@@ -6,11 +6,13 @@ import {
     Delete,
     Body,
     Param,
+    HttpException,
+    HttpStatus,
 } from '@nestjs/common';
 import { ItemService } from './item.service';
 import { Item } from "../entities/item.entity";
-import { CreateItemDTO, UpdateItemDTO } from './item.dto';
-import { InsertResult, UpdateResult, DeleteResult } from 'typeorm';
+import { CreateItemDTO, DeleteItemDTO, UpdateItemDTO } from './item.dto';
+import { InsertResult, UpdateResult, DeleteResult, ReturningStatementNotSupportedError } from 'typeorm';
 
 @Controller('item')
 export class ItemController {
@@ -48,5 +50,50 @@ export class ItemController {
             };
         return await this.service.update(Number(id), newData);
 
+    }
+
+    // パスワード無しで即削除(テスト用)
+    @Delete(":id/delete")
+    async delete(@Param("id") id: string): Promise<DeleteResult> {
+        return await this.service.delete(Number(id));
+    }
+
+    @Post(":id/delete")
+    async deleteItem(
+        @Param("id") id: string,
+        @Body() deleteItem: DeleteItemDTO,
+    ) {
+        const item = await this.service.find(Number(id));
+        if (!item) {
+            throw new HttpException(
+                {
+                    status: HttpStatus.NOT_FOUND,
+                    error: `Missing item(id: ${id})`,
+                },
+                404,
+            );
+        }
+        try {
+            await this.service.deleteByPassword(
+                Number(id),
+                deleteItem.deletePassword,
+            );
+        } catch (e) {
+            if (e.message === "incorrect password.") {
+                throw new HttpException({
+                    status: HttpStatus.FORBIDDEN,
+                    error: "Incorrect password",
+                },
+                    403
+                );
+            }
+            throw new HttpException(
+                {
+                    status: HttpStatus.INTERNAL_SERVER_ERROR,
+                    error: "internal server error",
+                },
+                500,
+            );
+        }
     }
 }
