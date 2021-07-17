@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ItemService } from './item.service';
 import { Item } from "../entities/item.entity";
-import { CreateItemDTO } from './item.dto';
+import { CreateItemDTO, UpdateItemDTO } from './item.dto';
 import { InsertResult, UpdateResult, DeleteResult } from 'typeorm';
 
 @Controller('item')
@@ -32,5 +32,21 @@ export class ItemController {
     @Get(":id")
     async getItem(@Param("id") id: string): Promise<Item> {
         return await this.service.find(Number(id));
+    }
+
+    // item/id番号/updateのURIにPUTメソッドで指定したデータ更新
+    @Put(":id/update")
+    async update(
+        @Param("id") id: string,
+        @Body() itemData: UpdateItemDTO,
+    ): Promise<UpdateResult> {
+        const newData = !itemData.idDone
+            ? itemData
+            : {
+                ...itemData,
+                ...{ idDone: itemData.idDone.toLowerCase() === "true" },
+            };
+        return await this.service.update(Number(id), newData);
+
     }
 }
